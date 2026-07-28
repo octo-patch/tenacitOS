@@ -10,6 +10,10 @@ export interface ModelPricing {
   alias?: string;
   inputPricePerMillion: number;
   outputPricePerMillion: number;
+  // Cache pricing in USD per million tokens (null when the provider does not
+  // charge for that cache direction for this model).
+  cacheReadPricePerMillion?: number | null;
+  cacheWritePricePerMillion?: number | null;
   contextWindow: number;
 }
 
@@ -66,12 +70,23 @@ export const MODEL_PRICING: ModelPricing[] = [
   },
   // MiniMax
   {
-    id: "minimax/minimax-m2.5",
-    name: "MiniMax M2.5",
+    id: "minimax/MiniMax-M3",
+    name: "MiniMax M3",
     alias: "minimax",
-    inputPricePerMillion: 0.30,
-    outputPricePerMillion: 1.10,
+    inputPricePerMillion: 0.6,
+    outputPricePerMillion: 2.4,
+    cacheReadPricePerMillion: 0.12,
+    cacheWritePricePerMillion: null,
     contextWindow: 1000000,
+  },
+  {
+    id: "minimax/MiniMax-M2.7",
+    name: "MiniMax M2.7",
+    inputPricePerMillion: 0.3,
+    outputPricePerMillion: 1.2,
+    cacheReadPricePerMillion: 0.06,
+    cacheWritePricePerMillion: 0.375,
+    contextWindow: 204800,
   },
 ];
 
@@ -130,8 +145,9 @@ export function normalizeModelId(modelId: string): string {
     "gemini-2.5-flash": "google/gemini-2.5-flash",
     "gemini-2.5-pro": "google/gemini-2.5-pro",
     // MiniMax
-    minimax: "minimax/minimax-m2.5",
-    "minimax-m2.5": "minimax/minimax-m2.5",
+    minimax: "minimax/MiniMax-M3",
+    "minimax-m3": "minimax/MiniMax-M3",
+    "minimax-m2.7": "minimax/MiniMax-M2.7",
   };
 
   return aliasMap[modelId] || modelId;
