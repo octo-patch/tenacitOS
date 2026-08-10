@@ -146,6 +146,8 @@ export function normalizeModelId(modelId: string): string {
     "gemini-2.5-pro": "google/gemini-2.5-pro",
     // MiniMax
     minimax: "minimax/MiniMax-M3",
+    "MiniMax-M3": "minimax/MiniMax-M3",
+    "MiniMax-M2.7": "minimax/MiniMax-M2.7",
     "minimax-m3": "minimax/MiniMax-M3",
     "minimax-m2.7": "minimax/MiniMax-M2.7",
   };
