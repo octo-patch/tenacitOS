@@ -1,6 +1,7 @@
 /**
  * OpenClaw Model Pricing
  * Based on OpenRouter and Anthropic pricing as of Feb 2026
+ * MiniMax direct API rates refreshed in October 2026.
  * All prices in USD per million tokens
  */
 
@@ -10,8 +11,7 @@ export interface ModelPricing {
   alias?: string;
   inputPricePerMillion: number;
   outputPricePerMillion: number;
-  // Cache pricing in USD per million tokens (null when the provider does not
-  // charge for that cache direction for this model).
+  // Cache pricing in USD per million tokens; omit unknown rates.
   cacheReadPricePerMillion?: number | null;
   cacheWritePricePerMillion?: number | null;
   contextWindow: number;
@@ -68,15 +68,36 @@ export const MODEL_PRICING: ModelPricing[] = [
     outputPricePerMillion: 10.00,
     contextWindow: 128000,
   },
-  // MiniMax
+  // MiniMax direct API: https://platform.minimax.io/docs/pricing/overview#models/text
+  {
+    id: "minimax/MiniMax-M3.1-Flash",
+    name: "MiniMax M3.1 Flash",
+    alias: "minimax",
+    inputPricePerMillion: 0.15,
+    outputPricePerMillion: 0.60,
+    cacheReadPricePerMillion: 0.015,
+    contextWindow: 1000000,
+  },
   {
     id: "minimax/MiniMax-M3",
     name: "MiniMax M3",
-    alias: "minimax",
-    inputPricePerMillion: 0.6,
-    outputPricePerMillion: 2.4,
-    cacheReadPricePerMillion: 0.12,
-    cacheWritePricePerMillion: null,
+    // Standard rates for requests with <=512k input tokens. Session totals do
+    // not expose per-request context, priority tier, or cache usage, so costs
+    // remain estimates; do not infer a request's tier from aggregated tokens.
+    inputPricePerMillion: 0.30,
+    outputPricePerMillion: 1.20,
+    cacheReadPricePerMillion: 0.06,
+    contextWindow: 1000000,
+  },
+];
+
+// Keep historical session IDs and their existing estimates out of the active catalog.
+const LEGACY_MODEL_PRICING: ModelPricing[] = [
+  {
+    id: "minimax/minimax-m2.5",
+    name: "MiniMax M2.5",
+    inputPricePerMillion: 0.30,
+    outputPricePerMillion: 1.10,
     contextWindow: 1000000,
   },
   {
@@ -98,8 +119,11 @@ export function calculateCost(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const pricing = MODEL_PRICING.find(
-    (p) => p.id === modelId || p.alias === modelId
+  const normalizedId = modelId.toLowerCase().startsWith("minimax")
+    ? normalizeModelId(modelId)
+    : modelId;
+  const pricing = [...MODEL_PRICING, ...LEGACY_MODEL_PRICING].find(
+    (p) => p.id === normalizedId || p.alias === normalizedId
   );
 
   if (!pricing) {
@@ -120,8 +144,11 @@ export function calculateCost(
  * Get human-readable model name
  */
 export function getModelName(modelId: string): string {
-  const pricing = MODEL_PRICING.find(
-    (p) => p.id === modelId || p.alias === modelId
+  const normalizedId = modelId.toLowerCase().startsWith("minimax")
+    ? normalizeModelId(modelId)
+    : modelId;
+  const pricing = [...MODEL_PRICING, ...LEGACY_MODEL_PRICING].find(
+    (p) => p.id === normalizedId || p.alias === normalizedId
   );
   return pricing?.name || modelId;
 }
@@ -145,11 +172,20 @@ export function normalizeModelId(modelId: string): string {
     "gemini-2.5-flash": "google/gemini-2.5-flash",
     "gemini-2.5-pro": "google/gemini-2.5-pro",
     // MiniMax
-    minimax: "minimax/MiniMax-M3",
+    minimax: "minimax/MiniMax-M3.1-Flash",
+    "MiniMax-M3.1-Flash": "minimax/MiniMax-M3.1-Flash",
+    "minimax-m3.1-flash": "minimax/MiniMax-M3.1-Flash",
+    "minimax/minimax-m3.1-flash": "minimax/MiniMax-M3.1-Flash",
     "MiniMax-M3": "minimax/MiniMax-M3",
-    "MiniMax-M2.7": "minimax/MiniMax-M2.7",
     "minimax-m3": "minimax/MiniMax-M3",
+    "minimax/minimax-m3": "minimax/MiniMax-M3",
+    // Explicit legacy IDs still describe historical sessions.
+    "MiniMax-M2.5": "minimax/minimax-m2.5",
+    "minimax-m2.5": "minimax/minimax-m2.5",
+    "minimax/MiniMax-M2.5": "minimax/minimax-m2.5",
+    "MiniMax-M2.7": "minimax/MiniMax-M2.7",
     "minimax-m2.7": "minimax/MiniMax-M2.7",
+    "minimax/minimax-m2.7": "minimax/MiniMax-M2.7",
   };
 
   return aliasMap[modelId] || modelId;

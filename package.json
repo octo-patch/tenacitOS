@@ -6,7 +6,8 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:pricing": "tsc --module commonjs --target ES2020 --esModuleInterop --skipLibCheck --outDir node_modules/.cache/pricing-tests scripts/test-pricing.ts && node --test node_modules/.cache/pricing-tests/scripts/test-pricing.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
